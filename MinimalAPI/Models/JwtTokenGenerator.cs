@@ -27,7 +27,7 @@ namespace MinimalAPI.Models
                 _configuration["Authentication:Audience"],
                 claims,
                 DateTime.UtcNow,
-                DateTime.UtcNow.AddMinutes(2),
+                DateTime.UtcNow.AddMinutes(15),
                 signingCredentials
             );
             var tokenHandler = new JwtSecurityTokenHandler().WriteToken(jwtSecurityToken);

@@ -1,27 +1,68 @@
 ﻿using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
-using System.Text;
+using System.Security.Claims;
 
 namespace MinimalAPI.Models
 {
     public class JwtTokenGenerator
     {
 
+        public IConfiguration _configuration;
+
+        public JwtTokenGenerator(IConfiguration configuration)
+        {
+            this._configuration = configuration;
+        }
         public string GenerateJwtToken(string username, string password)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes("This is a secret key");
-            var tokenDescriptor = new SecurityTokenDescriptor
+            var securityKey = new SymmetricSecurityKey(Convert.FromBase64String(_configuration["Authentication:SecretForKey"]));
+
+            var signingCredentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256Signature);
+
+            var claims = new List<Claim>();
+            claims.Add(new Claim("given name", username));
+
+            var jwtSecurityToken = new JwtSecurityToken(
+                _configuration["Authentication:Issuer"],
+                _configuration["Authentication:Audience"],
+                claims,
+                DateTime.UtcNow,
+                DateTime.UtcNow.AddMinutes(2),
+                signingCredentials
+            );
+            var tokenHandler = new JwtSecurityTokenHandler().WriteToken(jwtSecurityToken);
+
+            return tokenHandler;
+        }
+
+        public bool ValidateJwtToken(string token)
+        {
+            var securityKey = new SymmetricSecurityKey(Convert.FromBase64String(_configuration["Authentication:SecretForKey"]));
+
+            var tokenValidationParameters = new TokenValidationParameters
             {
-                Subject = new System.Security.Claims.ClaimsIdentity(new System.Security.Claims.Claim[]
-                {
-                    new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Name, username)
-                }),
-                Expires = System.DateTime.UtcNow.AddMinutes(5),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = _configuration["Authentication:Issuer"],
+                ValidAudience = _configuration["Authentication:Audience"],
+                IssuerSigningKey = securityKey
             };
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            return tokenHandler.WriteToken(token);
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+
+            try
+            {
+                tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken validatedToken);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Token validation failed: {ex.Message}");
+                return false;
+            }
+
+            return true;
         }
     }
 }

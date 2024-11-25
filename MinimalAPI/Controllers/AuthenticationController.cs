@@ -9,9 +9,11 @@ namespace MinimalAPI.Controllers
     public class AuthenticationController : ControllerBase
     {
         IConfiguration _configuration;
-        public AuthenticationController(IConfiguration configuration)
+        ITokenGenerator _jwtTokenGenerator;
+        public AuthenticationController(IConfiguration configuration, ITokenGenerator tokenGenerator)
         {
             this._configuration = configuration;
+            this._jwtTokenGenerator = tokenGenerator;
         }
 
         [HttpPost("authenticate")]
@@ -19,16 +21,14 @@ namespace MinimalAPI.Controllers
         public ActionResult<string> Authenticate(User user)
         {
 
-            JwtTokenGenerator jwtTokenGenerator = new JwtTokenGenerator(_configuration);
-            string token = jwtTokenGenerator.GenerateJwtToken(user.Username, user.Password);
+            string token = _jwtTokenGenerator.GenerateToken(user.Username, user.Password);
             return Ok(token);
         }
 
         [HttpGet("validate-token")]
         public ActionResult<bool> ValidateToken([FromQuery] string token)
         {
-            JwtTokenGenerator jwtTokenGenerator = new JwtTokenGenerator(_configuration);
-            bool isValid = jwtTokenGenerator.ValidateJwtToken(token);
+            bool isValid = _jwtTokenGenerator.ValidateToken(token);
             return Ok(isValid);
         }
 

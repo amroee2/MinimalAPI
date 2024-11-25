@@ -4,7 +4,7 @@ using System.Security.Claims;
 
 namespace MinimalAPI.Models
 {
-    public class JwtTokenGenerator
+    public class JwtTokenGenerator: ITokenGenerator
     {
 
         public IConfiguration _configuration;
@@ -13,7 +13,7 @@ namespace MinimalAPI.Models
         {
             this._configuration = configuration;
         }
-        public string GenerateJwtToken(string username, string password)
+        public string GenerateToken(string username, string password)
         {
             var securityKey = new SymmetricSecurityKey(Convert.FromBase64String(_configuration["Authentication:SecretForKey"]));
 
@@ -35,7 +35,7 @@ namespace MinimalAPI.Models
             return tokenHandler;
         }
 
-        public bool ValidateJwtToken(string token)
+        public bool ValidateToken(string token)
         {
             var securityKey = new SymmetricSecurityKey(Convert.FromBase64String(_configuration["Authentication:SecretForKey"]));
 
